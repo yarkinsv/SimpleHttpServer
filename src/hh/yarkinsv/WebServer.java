@@ -1,5 +1,7 @@
 package hh.yarkinsv;
 
+import hh.yarkinsv.files.FilesWatcher;
+
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -11,12 +13,10 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 public class WebServer implements Runnable {
     private String root;
@@ -30,7 +30,7 @@ public class WebServer implements Runnable {
     private CharsetEncoder encoder = charset.newEncoder();
 
     protected WebServer(InetSocketAddress address) throws IOException {
-        workingQueue = new LinkedBlockingQueue<HTTPRequest>();
+        workingQueue = new LinkedBlockingQueue<SelectionKey>();
         this.selector = initSelector(address);
     }
 
@@ -63,12 +63,14 @@ public class WebServer implements Runnable {
     public final void run() {
         isRunning = true;
 
-        new Thread(new ResponseWorker(workingQueue, root, selector)).start();
-        //new Thread(new ResponseWorker(workingQueue, root)).start();
+        new Thread(new ResponseWorker(workingQueue)).start();
+        new Thread(new ResponseWorker(workingQueue)).start();
+
+        FilesWatcher.setRoot(root);
 
         while (isRunning) {
             try {
-                selector.selectNow();
+                selector.select();
 
                 Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
                 while (selectedKeys.hasNext()) {
@@ -102,8 +104,6 @@ public class WebServer implements Runnable {
     private void read(SelectionKey key) throws IOException {
         SocketChannel socketChannel = (SocketChannel) key.channel();
 
-        System.out.println(socketChannel.getRemoteAddress());
-
         this.readBuffer.clear();
         int numRead;
         try {
@@ -128,9 +128,11 @@ public class WebServer implements Runnable {
         }
 
         System.out.println(sb.toString());
-        HTTPRequest request = new HTTPRequest(sb.toString(), socketChannel);
+        HTTPRequest request = new HTTPRequest(sb.toString());
 
-        this.workingQueue.offer(request);
+        key.attach(request);
+
+        this.workingQueue.offer(key);
     }
 
     private void write(SelectionKey key) throws IOException {
@@ -149,6 +151,7 @@ public class WebServer implements Runnable {
 
     private void writeLine(SocketChannel channel, String line) throws IOException {
         channel.write(encoder.encode(CharBuffer.wrap(line + "\r\n")));
+        System.out.println(line);
     }
 
     private final void shutdown() {

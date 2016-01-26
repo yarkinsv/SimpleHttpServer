@@ -1,6 +1,5 @@
 package hh.yarkinsv;
 
-import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -11,12 +10,10 @@ public class HTTPRequest {
     private String location;
     private String version;
     private Map<String, String> headers = new HashMap<String, String>();
-    private SocketChannel socketChannel;
     private boolean isValid = true;
 
-    public HTTPRequest(String raw, SocketChannel socketChannel) {
+    public HTTPRequest(String raw) {
         this.raw = raw;
-        this.socketChannel = socketChannel;
         try {
             String[] lines = raw.split("\r\n");
 
@@ -42,12 +39,12 @@ public class HTTPRequest {
         return location;
     }
 
-    public String getHead(String key) {
-        return headers.get(key);
-    }
-
-    public SocketChannel getSocketChannel() {
-        return socketChannel;
+    public String getHeader(String key) {
+        if (headers.containsKey(key)) {
+            return headers.get(key);
+        } else {
+            return null;
+        }
     }
 
     public boolean isValid() {

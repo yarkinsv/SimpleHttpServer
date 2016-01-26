@@ -1,6 +1,5 @@
 package hh.yarkinsv;
 
-import java.nio.channels.SocketChannel;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -11,7 +10,9 @@ public class HTTPResponse {
         OK(200, "OK"),
         FileNotFound(404, "File Not Found"),
         MethodNotAllowed(405, "Method Not Allowed"),
-        BadRequest(400, "Bad Request");
+        BadRequest(400, "Bad Request"),
+        NotModified(304, "Not Modified"),
+        InternalServerError(500, "Internal Server Error");
 
         private int responseCode;
         private String responseReason;
@@ -34,21 +35,23 @@ public class HTTPResponse {
     private ResponseType responseType = ResponseType.OK;
     private Map<String, String> headers = new LinkedHashMap<String, String>();
     private byte[] content;
-    private SocketChannel socketChannel;
 
-    public HTTPResponse(SocketChannel socketChannel) {
-        this.socketChannel = socketChannel;
-    }
-
-    public void addDefaultHeaders() {
+    private void addDefaultHeaders() {
         headers.put("Date", new Date().toString());
-        headers.put("Server", "Java NIO Webserver by md_5");
+        headers.put("Server", "Java NIO Webserver");
         headers.put("Connection", "close");
-        headers.put("Content-Length", content != null ? Integer.toString(content.length) : "0");
     }
 
-    public SocketChannel getSocketChannel() {
-        return socketChannel;
+    public void addHeaders() {
+        addDefaultHeaders();
+
+        if (content == null) {
+            content = new byte[0];
+        }
+
+        if (content != null) {
+            headers.put("Content-Length", Integer.toString(content.length));
+        }
     }
 
     public ResponseType getResponseType() {
