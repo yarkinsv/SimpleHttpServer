@@ -62,11 +62,15 @@ public class WebServer implements Runnable {
     @Override
     public final void run() {
         isRunning = true;
+        FilesWatcher filesWatcher = null;
+        try {
+            filesWatcher = new FilesWatcher(this.root, this.caching);
+        } catch (IOException ex) {
 
-        new Thread(new ResponseWorker(workingQueue)).start();
-        new Thread(new ResponseWorker(workingQueue)).start();
+        }
 
-        FilesWatcher.setRoot(root);
+        new Thread(new ResponseWorker(workingQueue, filesWatcher)).start();
+        new Thread(new ResponseWorker(workingQueue, filesWatcher)).start();
 
         while (isRunning) {
             try {

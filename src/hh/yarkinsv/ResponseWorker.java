@@ -10,16 +10,17 @@ import java.util.concurrent.BlockingQueue;
 
 public class ResponseWorker implements Runnable {
     private BlockingQueue<SelectionKey> queue;
+    private FilesWatcher filesWatcher;
     private String root;
-
     private HTTPRequest request;
     private Selector selector;
     private SocketChannel socketChannel;
 
-    public ResponseWorker(BlockingQueue<SelectionKey> queue) {
+    public ResponseWorker(BlockingQueue<SelectionKey> queue, FilesWatcher filesWatcher) {
         this.queue = queue;
         this.root = root;
         this.selector = selector;
+        this.filesWatcher = filesWatcher;
     }
 
     public void run() {
@@ -54,7 +55,7 @@ public class ResponseWorker implements Runnable {
         else {
             try {
                 String encoding = request.getHeader("Accept-Charset");
-                response.setContent(FilesWatcher.getFileInfo(request.getLocation()).getFileBody(encoding));
+                response.setContent(filesWatcher.getFileInfo(request.getLocation()).getFileBody(encoding));
                 response.setResponseType(HTTPResponse.ResponseType.OK);
             } catch (IOException ex) {
                 response.setResponseType(HTTPResponse.ResponseType.FileNotFound);
