@@ -3,9 +3,9 @@ package hh.yarkinsv.files;
 import java.util.Arrays;
 
 public enum ContentType {
-    Text("text/html", new String[] {"txt", "html", "rtf"}),
-    Application("application/javascript", new String[] {"exe", "js"}),
-    Image("image/jpeg", new String[] {"img", "jpg", "jpeg", "png"});
+    Text("text/html", new String[] {"html", "htm"}),
+    Application("application/javascript", new String[] {"js"}),
+    Image("image/jpeg", new String[] { "jpg", "jpeg" });
 
     private String name;
     private String[] extensions;

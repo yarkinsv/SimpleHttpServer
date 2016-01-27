@@ -1,6 +1,6 @@
 package hh.yarkinsv;
 
-import hh.yarkinsv.files.FilesWatcher;
+import hh.yarkinsv.files.ServerFilesService;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,12 +21,6 @@ public class Main {
         server.setRoot((String)properties.get("root"));
         server.setCaching(Boolean.parseBoolean((String)properties.get("useCaching")));
 
-        new FilesWatcher((String)properties.get("root"), Boolean.parseBoolean((String)properties.get("useCaching")));
-
-        while (true) {
-            Thread.currentThread().sleep(200);
-        }
-
-        //server.run();
+        new Thread(server).start();
     }
 }

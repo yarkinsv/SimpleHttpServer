@@ -36,22 +36,10 @@ public class HTTPResponse {
     private Map<String, String> headers = new LinkedHashMap<String, String>();
     private byte[] content;
 
-    private void addDefaultHeaders() {
+    public void addDefaultHeaders() {
         headers.put("Date", new Date().toString());
         headers.put("Server", "Java NIO Webserver");
         headers.put("Connection", "close");
-    }
-
-    public void addHeaders() {
-        addDefaultHeaders();
-
-        if (content == null) {
-            content = new byte[0];
-        }
-
-        if (content != null) {
-            headers.put("Content-Length", Integer.toString(content.length));
-        }
     }
 
     public ResponseType getResponseType() {
@@ -75,6 +63,9 @@ public class HTTPResponse {
     }
 
     public byte[] getContent() {
+        if (content == null) {
+            return new byte[0];
+        }
         return content;
     }
 

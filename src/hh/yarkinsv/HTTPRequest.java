@@ -24,7 +24,7 @@ public class HTTPRequest {
 
             for (int i = 1; i < lines.length; i++) {
                 String[] keyVal = lines[i].split(":", 2);
-                this.headers.put(keyVal[0], keyVal[1]);
+                this.headers.put(keyVal[0].trim(), keyVal[1].trim());
             }
         } catch (Exception ex) {
             this.isValid = false;
@@ -43,7 +43,7 @@ public class HTTPRequest {
         if (headers.containsKey(key)) {
             return headers.get(key);
         } else {
-            return null;
+            return "";
         }
     }
 

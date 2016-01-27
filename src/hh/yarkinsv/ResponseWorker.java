@@ -1,6 +1,8 @@
 package hh.yarkinsv;
 
-import hh.yarkinsv.files.FilesWatcher;
+import hh.yarkinsv.files.ContentType;
+import hh.yarkinsv.files.FileInfo;
+import hh.yarkinsv.files.ServerFilesService;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -10,17 +12,14 @@ import java.util.concurrent.BlockingQueue;
 
 public class ResponseWorker implements Runnable {
     private BlockingQueue<SelectionKey> queue;
-    private FilesWatcher filesWatcher;
-    private String root;
+    private ServerFilesService serverFilesService;
     private HTTPRequest request;
     private Selector selector;
     private SocketChannel socketChannel;
 
-    public ResponseWorker(BlockingQueue<SelectionKey> queue, FilesWatcher filesWatcher) {
+    public ResponseWorker(BlockingQueue<SelectionKey> queue, ServerFilesService serverFilesService) {
         this.queue = queue;
-        this.root = root;
-        this.selector = selector;
-        this.filesWatcher = filesWatcher;
+        this.serverFilesService = serverFilesService;
     }
 
     public void run() {
@@ -46,17 +45,44 @@ public class ResponseWorker implements Runnable {
 
     private HTTPResponse getResponse(HTTPRequest request) {
         HTTPResponse response = new HTTPResponse();
+        response.addDefaultHeaders();
 
         if (!request.isValid()) {
             response.setResponseType(HTTPResponse.ResponseType.BadRequest);
         } else if (!request.getMethod().equals("GET")) {
             response.setResponseType(HTTPResponse.ResponseType.MethodNotAllowed);
-        }
-        else {
+        } else {
             try {
                 String encoding = request.getHeader("Accept-Charset");
-                response.setContent(filesWatcher.getFileInfo(request.getLocation()).getFileBody(encoding));
-                response.setResponseType(HTTPResponse.ResponseType.OK);
+                for (String charset : encoding.split(",")) {
+                    charset = charset.trim();
+                    if (charset.equals("UTF-8") || charset.equals("US-ASCII")) {
+                        encoding = charset;
+                    }
+                }
+                FileInfo fileInfo = serverFilesService.getFileInfo(request.getLocation());
+
+                if (fileInfo == null || fileInfo.getContentType() == null) {
+                    throw new IOException("File Not Found");
+                }
+
+                String etag = request.getHeader("If-None-Match");
+                if (etag != null && !etag.isEmpty() && fileInfo.getEtag().equals(etag)) {
+                    response.setResponseType(HTTPResponse.ResponseType.NotModified);
+                } else {
+                    response.setContent(fileInfo.getFileBody(encoding));
+                    if (!fileInfo.getEtag().isEmpty()) {
+                        response.setHeader("Etag", fileInfo.getEtag());
+                    }
+                    String contentType = fileInfo.getContentType().getName();
+                    if (fileInfo.getContentType() == ContentType.Text) {
+                        if (encoding.equals("UTF-8") || encoding.equals("US-ASCII")) {
+                            contentType += "; " + encoding;
+                        }
+                    }
+                    response.setHeader("Content-type", contentType);
+                    response.setResponseType(HTTPResponse.ResponseType.OK);
+                }
             } catch (IOException ex) {
                 response.setResponseType(HTTPResponse.ResponseType.FileNotFound);
             } catch (Exception ex) {
@@ -64,7 +90,8 @@ public class ResponseWorker implements Runnable {
             }
         }
 
-        response.addHeaders();
+        response.setHeader("Content-Length", Integer.toString(response.getContent().length));
+
         return response;
     }
 }

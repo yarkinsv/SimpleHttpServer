@@ -1,15 +1,12 @@
 package hh.yarkinsv;
 
-import hh.yarkinsv.files.FilesWatcher;
+import hh.yarkinsv.files.ServerFilesService;
 
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
@@ -62,15 +59,16 @@ public class WebServer implements Runnable {
     @Override
     public final void run() {
         isRunning = true;
-        FilesWatcher filesWatcher = null;
-        try {
-            filesWatcher = new FilesWatcher(this.root, this.caching);
-        } catch (IOException ex) {
 
+        ServerFilesService serverFilesService = null;
+        try {
+            serverFilesService = new ServerFilesService(this.root, this.caching);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
         }
 
-        new Thread(new ResponseWorker(workingQueue, filesWatcher)).start();
-        new Thread(new ResponseWorker(workingQueue, filesWatcher)).start();
+        new Thread(new ResponseWorker(workingQueue, serverFilesService)).start();
+        new Thread(new ResponseWorker(workingQueue, serverFilesService)).start();
 
         while (isRunning) {
             try {
@@ -80,6 +78,7 @@ public class WebServer implements Runnable {
                 while (selectedKeys.hasNext()) {
                     SelectionKey key = selectedKeys.next();
                     selectedKeys.remove();
+
 
                     if (!key.isValid()) {
                         continue;
@@ -92,6 +91,10 @@ public class WebServer implements Runnable {
                     }
                 }
             } catch (IOException ex) {
+                System.out.println(ex.getMessage());
+            } catch (CancelledKeyException ex) {
+                System.out.println(ex.getMessage());
+            } catch (Exception ex) {
                 shutdown();
                 throw new RuntimeException(ex);
             }
@@ -142,15 +145,22 @@ public class WebServer implements Runnable {
     private void write(SelectionKey key) throws IOException {
         SocketChannel socketChannel = (SocketChannel) key.channel();
         HTTPResponse response = (HTTPResponse) key.attachment();
-        writeLine(socketChannel, response.getVersion() + " " + response.getResponseCode() + " " + response.getResponseReason());
-        for (Map.Entry<String, String> header : response.getHeaders().entrySet()) {
-            writeLine(socketChannel, header.getKey() + ": " + header.getValue());
+        try {
+            writeLine(socketChannel, response.getVersion() + " " + response.getResponseCode() + " " + response.getResponseReason());
+            for (Map.Entry<String, String> header : response.getHeaders().entrySet()) {
+                writeLine(socketChannel, header.getKey() + ": " + header.getValue());
+            }
+            writeLine(socketChannel, "");
+            if (response.getContent() != null) {
+                ByteBuffer buffer = ByteBuffer.wrap(response.getContent());
+                while (buffer.hasRemaining()) {
+                    socketChannel.write(buffer);
+                }
+            }
+            key.interestOps(SelectionKey.OP_READ);
+        } catch (Exception ex) {
+            key.cancel();
         }
-        writeLine(socketChannel, "");
-        if (response.getContent() != null) {
-            socketChannel.write(ByteBuffer.wrap(response.getContent()));
-        }
-        key.interestOps(SelectionKey.OP_READ);
     }
 
     private void writeLine(SocketChannel channel, String line) throws IOException {
