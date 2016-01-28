@@ -1,7 +1,7 @@
 package hh.yarkinsv;
 
-import hh.yarkinsv.files.ServerFilesService;
-
+import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -21,6 +21,7 @@ public class Main {
         server.setRoot((String)properties.get("root"));
         server.setCaching(Boolean.parseBoolean((String)properties.get("useCaching")));
 
-        new Thread(server).start();
+        //WebServerGUI.main(null);
+        WebServerGUI gui = new WebServerGUI(server);
     }
 }
