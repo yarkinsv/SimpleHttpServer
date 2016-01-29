@@ -17,7 +17,8 @@ public class Main {
         properties.load(is);
 
         /* Настройка и запуск веб-сервера */
-        WebServer server = new WebServer(new InetSocketAddress(Integer.parseInt((String)properties.get("port"))));
+        WebServer server = new WebServer();
+        server.setPort(Integer.parseInt((String)properties.get("port")));
         server.setRoot((String)properties.get("root"));
         server.setCaching(Boolean.parseBoolean((String)properties.get("useCaching")));
 

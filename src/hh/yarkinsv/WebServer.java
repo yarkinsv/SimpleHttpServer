@@ -10,8 +10,7 @@ import java.nio.channels.*;
 import java.nio.channels.spi.SelectorProvider;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -22,14 +21,13 @@ public class WebServer implements Runnable {
     private Selector selector;
     private ServerSocketChannel serverChannel;
     private ByteBuffer readBuffer = ByteBuffer.allocate(8192);
-    private BlockingQueue workingQueue;
+    private BlockingQueue workingQueue = new LinkedBlockingQueue<SelectionKey>();;
     private Charset charset = Charset.forName("UTF-8");
     private CharsetEncoder encoder = charset.newEncoder();
+    private ServerFilesService serverFilesService;
+    private InetSocketAddress address;
 
-    protected WebServer(InetSocketAddress address) throws IOException {
-        workingQueue = new LinkedBlockingQueue<SelectionKey>();
-        this.selector = initSelector(address);
-    }
+    private List<LogEventListener> logEventListeners = new ArrayList<>();
 
     private Selector initSelector(InetSocketAddress address) throws IOException {
         Selector socketSelector = SelectorProvider.provider().openSelector();
@@ -44,8 +42,8 @@ public class WebServer implements Runnable {
         this.root = root;
     }
 
-    public String getRoot(String root) {
-        return root;
+    public String getRoot() {
+        return this.root;
     }
 
     public void setCaching(boolean caching) {
@@ -56,12 +54,20 @@ public class WebServer implements Runnable {
         return caching;
     }
 
+    public int getPort() {
+        return address.getPort();
+    }
+
+    public void setPort(int port) {
+        this.address = new InetSocketAddress(port);
+    }
+
     @Override
     public final void run() {
         isRunning = true;
 
-        ServerFilesService serverFilesService = null;
         try {
+            this.selector = initSelector(address);
             serverFilesService = new ServerFilesService(this.root, this.caching);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
@@ -70,35 +76,36 @@ public class WebServer implements Runnable {
         new Thread(new ResponseWorker(workingQueue, serverFilesService)).start();
         new Thread(new ResponseWorker(workingQueue, serverFilesService)).start();
 
-        while (isRunning) {
-            try {
-                selector.select();
+        new Thread(() ->
+        {
+            while (isRunning) {
+                try {
+                    selector.select();
 
-                Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
-                while (selectedKeys.hasNext()) {
-                    SelectionKey key = selectedKeys.next();
-                    selectedKeys.remove();
+                    Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
+                    while (selectedKeys.hasNext()) {
+                        SelectionKey key = selectedKeys.next();
+                        selectedKeys.remove();
 
-
-                    if (!key.isValid()) {
-                        continue;
-                    } else if (key.isAcceptable()) {
-                        this.accept(key);
-                    } else if (key.isReadable()) {
-                        this.read(key);
-                    } else if (key.isWritable()) {
-                        this.write(key);
+                        if (!key.isValid()) {
+                            continue;
+                        } else if (key.isAcceptable()) {
+                            this.accept(key);
+                        } else if (key.isReadable()) {
+                            this.read(key);
+                        } else if (key.isWritable()) {
+                            this.write(key);
+                        }
                     }
+                } catch (IOException ex) {
+                    System.out.println(ex.getMessage());
+                } catch (CancelledKeyException ex) {
+                    System.out.println(ex.getMessage());
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
                 }
-            } catch (IOException ex) {
-                System.out.println(ex.getMessage());
-            } catch (CancelledKeyException ex) {
-                System.out.println(ex.getMessage());
-            } catch (Exception ex) {
-                shutdown();
-                throw new RuntimeException(ex);
             }
-        }
+        }).start();
     }
 
     private void accept(SelectionKey key) throws IOException {
@@ -134,7 +141,7 @@ public class WebServer implements Runnable {
             sb.append(c);
         }
 
-        System.out.println(sb.toString());
+        logAdded(sb.toString());
         HTTPRequest request = new HTTPRequest(sb.toString());
 
         key.attach(request);
@@ -165,15 +172,46 @@ public class WebServer implements Runnable {
 
     private void writeLine(SocketChannel channel, String line) throws IOException {
         channel.write(encoder.encode(CharBuffer.wrap(line + "\r\n")));
-        System.out.println(line);
+        logAdded(line);
     }
 
-    private final void shutdown() {
+    public final void updateCache() {
+        if (!this.caching || serverFilesService == null) {
+            return;
+        }
+        serverFilesService.refreshCache();
+    }
+
+    public int getFilesInCache() {
+        if (serverFilesService == null) {
+            return 0;
+        }
+        return serverFilesService.getFilesInCache();
+    }
+
+    public long getSizeOfCache() {
+        if (serverFilesService == null) {
+            return 0;
+        }
+        return serverFilesService.getSizeOfCache();
+    }
+
+    public final void stop() {
         isRunning = false;
         try {
             selector.close();
             serverChannel.close();
-        } catch (IOException ex) {
+        } catch (IOException ex) {}
+    }
+
+    public void addLogListener(LogEventListener listener) {
+        logEventListeners.add(listener);
+    }
+
+    private void logAdded(String log) {
+        for (LogEventListener listener : logEventListeners) {
+            listener.logEventAdded(log);
         }
     }
 }
+

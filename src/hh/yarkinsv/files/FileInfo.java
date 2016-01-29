@@ -8,9 +8,9 @@ import java.security.NoSuchAlgorithmException;
 public class FileInfo {
     private String fileName;
     private String etag;
-    private byte[] fileBody;
-    private byte[] fileBodyUTF8;
-    private byte[] fileBodyASCII;
+    private byte[] fileBody = new byte[0];
+    private byte[] fileBodyUTF8 = new byte[0];
+    private byte[] fileBodyASCII = new byte[0];
     private ContentType contentType;
 
     public FileInfo(String fileName, byte[] fileBody) {
@@ -40,6 +40,10 @@ public class FileInfo {
 
     public String getEtag() {
         return etag;
+    }
+
+    public long getBodySize() {
+        return (fileBody.length + fileBodyUTF8.length + fileBodyASCII.length) / 1024;
     }
 
     public byte[] getFileBody(String encoding) {

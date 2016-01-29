@@ -3,7 +3,7 @@
   <grid id="27dc6" binding="JPanel" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="5" left="5" bottom="5" right="5"/>
     <constraints>
-      <xy x="20" y="20" width="515" height="409"/>
+      <xy x="20" y="20" width="655" height="409"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -46,7 +46,7 @@
                   <text value="Size of cache:"/>
                 </properties>
               </component>
-              <component id="e2073" class="javax.swing.JTextField" binding="textField5" default-binding="true">
+              <component id="e2073" class="javax.swing.JTextField" binding="textLastUpdate">
                 <constraints>
                   <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
                     <preferred-size width="150" height="-1"/>
@@ -56,7 +56,7 @@
                   <editable value="false"/>
                 </properties>
               </component>
-              <component id="e5df3" class="javax.swing.JTextField" binding="textField3" default-binding="true">
+              <component id="e5df3" class="javax.swing.JTextField" binding="textSizeOfCache">
                 <constraints>
                   <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
                     <preferred-size width="150" height="-1"/>
@@ -66,7 +66,7 @@
                   <editable value="false"/>
                 </properties>
               </component>
-              <component id="dd64c" class="javax.swing.JTextField" binding="textField4" default-binding="true">
+              <component id="dd64c" class="javax.swing.JTextField" binding="textFilesInCache">
                 <constraints>
                   <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
                     <preferred-size width="150" height="-1"/>
@@ -160,7 +160,7 @@
                   <text value="Port:"/>
                 </properties>
               </component>
-              <component id="f2626" class="javax.swing.JCheckBox" binding="checkBox1" default-binding="true">
+              <component id="f2626" class="javax.swing.JCheckBox" binding="checkBoxUserCaching">
                 <constraints>
                   <grid row="2" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false">
                     <preferred-size width="229" height="24"/>
@@ -171,7 +171,7 @@
                   <text value=""/>
                 </properties>
               </component>
-              <component id="25ef8" class="javax.swing.JTextField" binding="textField1" default-binding="true">
+              <component id="25ef8" class="javax.swing.JTextField" binding="textRoot">
                 <constraints>
                   <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
@@ -179,7 +179,7 @@
                   <editable value="false"/>
                 </properties>
               </component>
-              <component id="db666" class="javax.swing.JTextField" binding="textField2" default-binding="true">
+              <component id="db666" class="javax.swing.JTextField" binding="textPort">
                 <constraints>
                   <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
                     <preferred-size width="150" height="-1"/>
@@ -191,7 +191,7 @@
               </component>
             </children>
           </grid>
-          <grid id="dd170" layout-manager="GridLayoutManager" row-count="1" column-count="4" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+          <grid id="dd170" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
             <margin top="0" left="0" bottom="0" right="0"/>
             <constraints>
               <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
@@ -209,19 +209,9 @@
                   <text value="Run"/>
                 </properties>
               </component>
-              <component id="b261c" class="javax.swing.JButton" binding="stopButton" default-binding="true">
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false">
-                    <maximum-size width="100" height="-1"/>
-                  </grid>
-                </constraints>
-                <properties>
-                  <text value="Stop"/>
-                </properties>
-              </component>
               <component id="63828" class="javax.swing.JButton" binding="restartButton" default-binding="true">
                 <constraints>
-                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false">
+                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false">
                     <maximum-size width="100" height="-1"/>
                   </grid>
                 </constraints>
@@ -231,7 +221,7 @@
               </component>
               <hspacer id="c04af">
                 <constraints>
-                  <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false">
+                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false">
                     <preferred-size width="191" height="11"/>
                   </grid>
                 </constraints>
@@ -240,25 +230,34 @@
           </grid>
         </children>
       </grid>
-      <grid id="a796f" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+      <grid id="a796f" binding="logPane" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="0" left="0" bottom="0" right="0"/>
         <constraints>
-          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+            <minimum-size width="500" height="300"/>
+          </grid>
         </constraints>
         <properties/>
         <border type="bevel-lowered"/>
         <children>
-          <component id="64dde" class="javax.swing.JTextArea" binding="loggingTextArea">
+          <scrollpane id="6e79" binding="scrollPane">
             <constraints>
-              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                <preferred-size width="150" height="50"/>
-              </grid>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
-              <editable value="false"/>
-              <lineWrap value="true"/>
+              <verticalScrollBarPolicy value="22"/>
             </properties>
-          </component>
+            <border type="none"/>
+            <children>
+              <component id="64dde" class="javax.swing.JTextArea" binding="loggingTextArea">
+                <constraints/>
+                <properties>
+                  <editable value="false"/>
+                  <lineWrap value="true"/>
+                </properties>
+              </component>
+            </children>
+          </scrollpane>
         </children>
       </grid>
     </children>

@@ -10,8 +10,6 @@ public class ServerFilesService {
     private boolean useCaching;
     private Map<String, FileInfo> cache = Collections.synchronizedMap(new HashMap<>());
 
-    private final char FOLDER_DELIMITER = '/';
-
     public ServerFilesService(String root, boolean useCaching) throws IOException {
         this.root = root;
         this.useCaching = useCaching;
@@ -21,7 +19,7 @@ public class ServerFilesService {
     }
 
     public FileInfo getFileInfo(String fileName) throws IOException {
-        String absoluteFileName = root + FOLDER_DELIMITER + fileName;
+        String absoluteFileName = root + FileSystems.getDefault().getSeparator() + fileName;
 
         if (useCaching) {
             return readFileInfoFromCache(absoluteFileName);
@@ -34,6 +32,7 @@ public class ServerFilesService {
         new Thread(() -> {
             try {
                 for (File file : getFileList("")) {
+
                     if (cache.containsKey(file.getAbsolutePath())) {
                         cache.remove(file.getAbsolutePath());
                     }
@@ -42,6 +41,24 @@ public class ServerFilesService {
             } catch (IOException ex) {
             }
         }).start();
+    }
+
+    public int getFilesInCache() {
+        if (!useCaching) {
+            return 0;
+        }
+        return cache.size();
+    }
+
+    public int getSizeOfCache() {
+        if (!useCaching) {
+            return 0;
+        }
+        int result = 0;
+        for (FileInfo file : cache.values()) {
+            result += file.getBodySize();
+        }
+        return result;
     }
 
     private FileInfo readFileInfo(String fileName) throws IOException {
@@ -60,10 +77,13 @@ public class ServerFilesService {
     private List<File> getFileList(String path) throws IOException {
         List<File> result = new ArrayList<File>();
         File[] files = new File(this.root + path).listFiles();
+        if (files == null) {
+            return result;
+        }
         for (File file : files) {
             if (file.isDirectory()) {
-                result.addAll(getFileList(path + FOLDER_DELIMITER + file.getName()));
-            } else if (file.isFile()) {
+                result.addAll(getFileList(path + FileSystems.getDefault().getSeparator() + file.getName()));
+            } else if (file.isFile() && ContentType.getContentTypeByExtension(file.getName().substring(file.getName().lastIndexOf(".") + 1)) != null) {
                 result.add(file);
             }
         }
