@@ -23,7 +23,7 @@ public class ResponseWorker implements Runnable {
     }
 
     public void run() {
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 SelectionKey key = queue.take();
                 this.request = (HTTPRequest) key.attachment();
@@ -31,9 +31,9 @@ public class ResponseWorker implements Runnable {
                 this.socketChannel = (SocketChannel) key.channel();
                 sendResponse(getResponse(this.request));
             } catch (InterruptedException ex) {
-                ex.printStackTrace();
+                Thread.currentThread().interrupt();
             } catch (IOException ex) {
-                ex.printStackTrace();
+
             }
         }
     }

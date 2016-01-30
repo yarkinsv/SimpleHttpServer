@@ -1,5 +1,7 @@
 package hh.yarkinsv.files;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.io.File;
 import java.nio.file.*;
@@ -9,6 +11,7 @@ public class ServerFilesService {
     private String root;
     private boolean useCaching;
     private Map<String, FileInfo> cache = Collections.synchronizedMap(new HashMap<>());
+    private ActionListener cacheRefreshedListener;
 
     public ServerFilesService(String root, boolean useCaching) throws IOException {
         this.root = root;
@@ -38,6 +41,9 @@ public class ServerFilesService {
                     }
                     readFileInfoFromCache(file.getAbsolutePath());
                 }
+                if (cacheRefreshedListener != null) {
+                    cacheRefreshedListener.actionPerformed(new ActionEvent(this, 1, "Cache refreshed"));
+                }
             } catch (IOException ex) {
             }
         }).start();
@@ -59,6 +65,10 @@ public class ServerFilesService {
             result += file.getBodySize();
         }
         return result;
+    }
+
+    public void addCacheRefreshedListener(ActionListener listener) {
+        cacheRefreshedListener = listener;
     }
 
     private FileInfo readFileInfo(String fileName) throws IOException {

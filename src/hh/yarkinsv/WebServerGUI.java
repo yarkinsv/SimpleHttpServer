@@ -3,11 +3,14 @@ package hh.yarkinsv;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
-
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.util.Date;
+import java.util.Properties;
 
 public class WebServerGUI extends JFrame {
     private JButton runButton;
@@ -23,6 +26,7 @@ public class WebServerGUI extends JFrame {
     private JTextArea loggingTextArea;
     private JPanel logPane;
     private JScrollPane scrollPane;
+    private JButton saveSettingsButton;
 
     private WebServer webServer;
 
@@ -40,6 +44,7 @@ public class WebServerGUI extends JFrame {
         runButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                configureWebServer();
                 webServer.run();
                 updateServerInfo();
             }
@@ -53,12 +58,62 @@ public class WebServerGUI extends JFrame {
             }
         });
 
+        saveSettingsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    Properties props = new Properties();
+                    props.setProperty("root", textRoot.getText());
+                    props.setProperty("port", textPort.getText());
+                    props.setProperty("useCaching", String.valueOf(checkBoxUserCaching.isSelected()));
+                    File f = new File("./resources/server.properties");
+                    OutputStream out = new FileOutputStream(f);
+                    props.store(out, "");
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        this.addWindowListener(new WindowListener() {
+
+            @Override
+            public void windowOpened(WindowEvent e) {
+            }
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+                webServer.stop();
+            }
+
+            @Override
+            public void windowClosed(WindowEvent e) {
+            }
+
+            @Override
+            public void windowIconified(WindowEvent e) {
+            }
+
+            @Override
+            public void windowDeiconified(WindowEvent e) {
+            }
+
+            @Override
+            public void windowActivated(WindowEvent e) {
+            }
+
+            @Override
+            public void windowDeactivated(WindowEvent e) {
+            }
+        });
+
         this.add(this.JPanel);
         this.pack();
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setVisible(true);
+        this.setLocationRelativeTo(null);
+        this.setTitle("Java NIO Server");
         updateServerInfo();
-        configureWebServer();
     }
 
     private void updateServerInfo() {
@@ -66,7 +121,7 @@ public class WebServerGUI extends JFrame {
         textPort.setText(String.valueOf(webServer.getPort()));
         checkBoxUserCaching.setSelected(webServer.getCaching());
         textFilesInCache.setText(String.valueOf(webServer.getFilesInCache()));
-        textSizeOfCache.setText(String.valueOf(webServer.getSizeOfCache()));
+        textSizeOfCache.setText(String.valueOf(webServer.getSizeOfCache()) + " Kb");
     }
 
     private void configureWebServer() {
@@ -78,6 +133,15 @@ public class WebServerGUI extends JFrame {
             loggingTextArea.setText(loggingTextArea.getText() + System.lineSeparator() + log);
             JScrollBar vertical = scrollPane.getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum() + 100);
+        });
+
+        webServer.addCacheRefreshedListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateServerInfo();
+                Date date = new Date();
+                textLastUpdate.setText(String.valueOf(date));
+            }
         });
     }
 
@@ -161,17 +225,17 @@ public class WebServerGUI extends JFrame {
         label6.setText("Port:");
         panel5.add(label6, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(71, 16), null, 0, false));
         checkBoxUserCaching = new JCheckBox();
-        checkBoxUserCaching.setEnabled(false);
+        checkBoxUserCaching.setEnabled(true);
         checkBoxUserCaching.setText("");
         panel5.add(checkBoxUserCaching, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(229, 24), null, 0, false));
         textRoot = new JTextField();
-        textRoot.setEditable(false);
+        textRoot.setEditable(true);
         panel5.add(textRoot, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         textPort = new JTextField();
-        textPort.setEditable(false);
+        textPort.setEditable(true);
         panel5.add(textPort, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         final javax.swing.JPanel panel6 = new JPanel();
-        panel6.setLayout(new GridLayoutManager(1, 3, new Insets(0, 0, 0, 0), -1, -1));
+        panel6.setLayout(new GridLayoutManager(1, 5, new Insets(0, 0, 0, 0), -1, -1));
         panel4.add(panel6, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         runButton = new JButton();
         runButton.setText("Run");
@@ -180,7 +244,14 @@ public class WebServerGUI extends JFrame {
         restartButton.setText("Restart");
         panel6.add(restartButton, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, new Dimension(100, -1), 0, false));
         final Spacer spacer1 = new Spacer();
-        panel6.add(spacer1, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, new Dimension(191, 11), null, 0, false));
+        panel6.add(spacer1, new GridConstraints(0, 3, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, new Dimension(191, 11), null, 0, false));
+        final JLabel label7 = new JLabel();
+        label7.setForeground(new Color(-3793377));
+        label7.setText("Сервер остановлен");
+        panel6.add(label7, new GridConstraints(0, 4, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        saveSettingsButton = new JButton();
+        saveSettingsButton.setText("Save settings");
+        panel6.add(saveSettingsButton, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         logPane = new JPanel();
         logPane.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
         JPanel.add(logPane, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(500, 300), null, null, 0, false));

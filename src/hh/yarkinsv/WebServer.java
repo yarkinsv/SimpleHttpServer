@@ -2,6 +2,7 @@ package hh.yarkinsv;
 
 import hh.yarkinsv.files.ServerFilesService;
 
+import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -17,7 +18,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class WebServer implements Runnable {
     private String root;
     private boolean caching = true;
-    private boolean isRunning = true;
+    private boolean isRunning = false;
     private Selector selector;
     private ServerSocketChannel serverChannel;
     private ByteBuffer readBuffer = ByteBuffer.allocate(8192);
@@ -26,6 +27,8 @@ public class WebServer implements Runnable {
     private CharsetEncoder encoder = charset.newEncoder();
     private ServerFilesService serverFilesService;
     private InetSocketAddress address;
+    private ActionListener cacheRefreshedListener;
+    private List<Thread> workingThreads = new ArrayList<>();
 
     private List<LogEventListener> logEventListeners = new ArrayList<>();
 
@@ -69,43 +72,49 @@ public class WebServer implements Runnable {
         try {
             this.selector = initSelector(address);
             serverFilesService = new ServerFilesService(this.root, this.caching);
+            serverFilesService.addCacheRefreshedListener(cacheRefreshedListener);
+
+            workingThreads = new ArrayList<>();
+            workingThreads.add(new Thread(new ResponseWorker(workingQueue, serverFilesService)));
+            workingThreads.add(new Thread(new ResponseWorker(workingQueue, serverFilesService)));
+            workingThreads.forEach(Thread::start);
+
+            new Thread(() ->
+            {
+                while (isRunning) {
+                    try {
+                        selector.select();
+
+                        Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
+                        while (selectedKeys.hasNext()) {
+                            SelectionKey key = selectedKeys.next();
+                            selectedKeys.remove();
+
+                            if (!key.isValid()) {
+                                continue;
+                            } else if (key.isAcceptable()) {
+                                this.accept(key);
+                            } else if (key.isReadable()) {
+                                this.read(key);
+                            } else if (key.isWritable()) {
+                                this.write(key);
+                            }
+                        }
+                    } catch (IOException ex) {
+
+                    } catch (CancelledKeyException ex) {
+
+                    } catch (ClosedSelectorException ex) {
+
+                    } catch (Exception ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
+            }).start();
         } catch (IOException ex) {
+            isRunning = false;
             throw new RuntimeException(ex);
         }
-
-        new Thread(new ResponseWorker(workingQueue, serverFilesService)).start();
-        new Thread(new ResponseWorker(workingQueue, serverFilesService)).start();
-
-        new Thread(() ->
-        {
-            while (isRunning) {
-                try {
-                    selector.select();
-
-                    Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
-                    while (selectedKeys.hasNext()) {
-                        SelectionKey key = selectedKeys.next();
-                        selectedKeys.remove();
-
-                        if (!key.isValid()) {
-                            continue;
-                        } else if (key.isAcceptable()) {
-                            this.accept(key);
-                        } else if (key.isReadable()) {
-                            this.read(key);
-                        } else if (key.isWritable()) {
-                            this.write(key);
-                        }
-                    }
-                } catch (IOException ex) {
-                    System.out.println(ex.getMessage());
-                } catch (CancelledKeyException ex) {
-                    System.out.println(ex.getMessage());
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-        }).start();
     }
 
     private void accept(SelectionKey key) throws IOException {
@@ -197,15 +206,26 @@ public class WebServer implements Runnable {
     }
 
     public final void stop() {
+        if (!isRunning) return;
         isRunning = false;
         try {
+            for (Thread workingThread : workingThreads) {
+                workingThread.interrupt();
+            }
+            selector.wakeup();
             selector.close();
             serverChannel.close();
-        } catch (IOException ex) {}
+        } catch (IOException ex) {
+
+        }
     }
 
     public void addLogListener(LogEventListener listener) {
         logEventListeners.add(listener);
+    }
+
+    public void addCacheRefreshedListener(ActionListener listener) {
+        cacheRefreshedListener = listener;
     }
 
     private void logAdded(String log) {
