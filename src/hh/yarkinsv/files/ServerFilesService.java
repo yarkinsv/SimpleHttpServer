@@ -22,7 +22,15 @@ public class ServerFilesService {
     }
 
     public FileInfo getFileInfo(String fileName) throws IOException {
-        String absoluteFileName = root + FileSystems.getDefault().getSeparator() + fileName;
+        if (FileSystems.getDefault().getSeparator().equals("\\")) {
+            fileName = fileName.replaceAll("/", "\\\\");
+        }
+        String absoluteFileName = root;
+        if (("" + fileName.charAt(0)).equals(FileSystems.getDefault().getSeparator())) {
+            absoluteFileName += fileName;
+        } else {
+            absoluteFileName += FileSystems.getDefault().getSeparator() + fileName;
+        }
 
         if (useCaching) {
             return readFileInfoFromCache(absoluteFileName);
@@ -39,7 +47,7 @@ public class ServerFilesService {
                     if (cache.containsKey(file.getAbsolutePath())) {
                         cache.remove(file.getAbsolutePath());
                     }
-                    readFileInfoFromCache(file.getAbsolutePath());
+                    cache.put(file.getAbsolutePath(), readFileInfo(file.getAbsolutePath()));
                 }
                 if (cacheRefreshedListener != null) {
                     cacheRefreshedListener.actionPerformed(new ActionEvent(this, 1, "Cache refreshed"));
@@ -78,9 +86,6 @@ public class ServerFilesService {
     }
 
     private FileInfo readFileInfoFromCache(String fileName) throws IOException {
-        if (!cache.containsKey(fileName)) {
-            cache.put(fileName, readFileInfo(fileName));
-        }
         return cache.get(fileName);
     }
 

@@ -23,7 +23,8 @@ public class ResponseWorker implements Runnable {
     }
 
     public void run() {
-        while (!Thread.currentThread().isInterrupted()) {
+        boolean isRunning = true;
+        while (isRunning) {
             try {
                 SelectionKey key = queue.take();
                 this.request = (HTTPRequest) key.attachment();
@@ -31,7 +32,7 @@ public class ResponseWorker implements Runnable {
                 this.socketChannel = (SocketChannel) key.channel();
                 sendResponse(getResponse(this.request));
             } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
+                isRunning = false;
             } catch (IOException ex) {
 
             }
@@ -87,6 +88,7 @@ public class ResponseWorker implements Runnable {
                 response.setResponseType(HTTPResponse.ResponseType.FileNotFound);
             } catch (Exception ex) {
                 response.setResponseType(HTTPResponse.ResponseType.InternalServerError);
+                ex.printStackTrace();
             }
         }
 

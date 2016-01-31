@@ -27,8 +27,12 @@ public class WebServerGUI extends JFrame {
     private JPanel logPane;
     private JScrollPane scrollPane;
     private JButton saveSettingsButton;
+    private JLabel textStatus;
+    private JButton enableDisableLoggingButton;
+    private JLabel textLoggin;
 
     private WebServer webServer;
+    private StringBuilder sb = new StringBuilder();
 
     public WebServerGUI(WebServer webServer) {
         this.webServer = webServer;
@@ -44,8 +48,15 @@ public class WebServerGUI extends JFrame {
         runButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                if (webServer.isRunning()) {
+                    return;
+                }
                 configureWebServer();
-                webServer.run();
+                try {
+                    webServer.run();
+                } catch (RuntimeException ex) {
+                    JOptionPane.showMessageDialog(null, ex.getMessage(), "Не удалось запустить сервер", JOptionPane.ERROR_MESSAGE);
+                }
                 updateServerInfo();
             }
         });
@@ -73,6 +84,36 @@ public class WebServerGUI extends JFrame {
                     ex.printStackTrace();
                 }
             }
+        });
+
+        enableDisableLoggingButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (textLoggin.getText().equals("Логирование включено")) {
+                    textLoggin.setText("Логирование отключено");
+                    textLoggin.setForeground(new Color(-3793377));
+                    webServer.removeLogListeners();
+                } else {
+                    textLoggin.setText("Логирование включено");
+                    textLoggin.setForeground(new Color(0x06C625));
+                    webServer.addLogListener(new LogEventListener() {
+                        @Override
+                        public void logEventAdded(String log) {
+                            sb.append(System.lineSeparator());
+                            sb.append(log);
+                            loggingTextArea.setText(sb.toString());
+                            JScrollBar vertical = scrollPane.getVerticalScrollBar();
+                            vertical.setValue(vertical.getMaximum() + 100);
+                        }
+                    });
+                }
+            }
+        });
+
+        webServer.addLogListener(log -> {
+            loggingTextArea.setText(loggingTextArea.getText() + System.lineSeparator() + log);
+            JScrollBar vertical = scrollPane.getVerticalScrollBar();
+            vertical.setValue(vertical.getMaximum() + 100);
         });
 
         this.addWindowListener(new WindowListener() {
@@ -122,18 +163,19 @@ public class WebServerGUI extends JFrame {
         checkBoxUserCaching.setSelected(webServer.getCaching());
         textFilesInCache.setText(String.valueOf(webServer.getFilesInCache()));
         textSizeOfCache.setText(String.valueOf(webServer.getSizeOfCache()) + " Kb");
+        if (webServer.isRunning()) {
+            textStatus.setForeground(new Color(0x06C625));
+            textStatus.setText("Сервер запущен");
+        } else {
+            textStatus.setForeground(new Color(-3793377));
+            textStatus.setText("Сервер остановлен");
+        }
     }
 
     private void configureWebServer() {
         webServer.setRoot(textRoot.getText());
         webServer.setPort(Integer.parseInt(textPort.getText()));
         webServer.setCaching(checkBoxUserCaching.isSelected());
-
-        webServer.addLogListener(log -> {
-            loggingTextArea.setText(loggingTextArea.getText() + System.lineSeparator() + log);
-            JScrollBar vertical = scrollPane.getVerticalScrollBar();
-            vertical.setValue(vertical.getMaximum() + 100);
-        });
 
         webServer.addCacheRefreshedListener(new ActionListener() {
             @Override
@@ -199,11 +241,20 @@ public class WebServerGUI extends JFrame {
         label3.setText("Last update:");
         panel2.add(label3, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final javax.swing.JPanel panel3 = new JPanel();
-        panel3.setLayout(new GridLayoutManager(1, 1, new Insets(0, 0, 0, 0), -1, -1));
+        panel3.setLayout(new GridLayoutManager(1, 4, new Insets(0, 0, 0, 0), -1, -1));
         panel1.add(panel3, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, true));
         updateCacheButton = new JButton();
         updateCacheButton.setText("Update Cache");
         panel3.add(updateCacheButton, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, new Dimension(150, -1), 0, false));
+        enableDisableLoggingButton = new JButton();
+        enableDisableLoggingButton.setText("Enable/Disable Logging");
+        panel3.add(enableDisableLoggingButton, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final Spacer spacer1 = new Spacer();
+        panel3.add(spacer1, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
+        textLoggin = new JLabel();
+        textLoggin.setForeground(new Color(-14694813));
+        textLoggin.setText("Логирование включено");
+        panel3.add(textLoggin, new GridConstraints(0, 3, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final javax.swing.JPanel panel4 = new JPanel();
         panel4.setLayout(new GridLayoutManager(2, 1, new Insets(5, 5, 5, 5), -1, -1));
         JPanel.add(panel4, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, true));
@@ -243,12 +294,12 @@ public class WebServerGUI extends JFrame {
         restartButton = new JButton();
         restartButton.setText("Restart");
         panel6.add(restartButton, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, new Dimension(100, -1), 0, false));
-        final Spacer spacer1 = new Spacer();
-        panel6.add(spacer1, new GridConstraints(0, 3, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, new Dimension(191, 11), null, 0, false));
-        final JLabel label7 = new JLabel();
-        label7.setForeground(new Color(-3793377));
-        label7.setText("Сервер остановлен");
-        panel6.add(label7, new GridConstraints(0, 4, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final Spacer spacer2 = new Spacer();
+        panel6.add(spacer2, new GridConstraints(0, 3, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, new Dimension(191, 11), null, 0, false));
+        textStatus = new JLabel();
+        textStatus.setForeground(new Color(-14694813));
+        textStatus.setText("Сервер остановлен");
+        panel6.add(textStatus, new GridConstraints(0, 4, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         saveSettingsButton = new JButton();
         saveSettingsButton.setText("Save settings");
         panel6.add(saveSettingsButton, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));

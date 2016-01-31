@@ -13,6 +13,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class WebServer implements Runnable {
@@ -29,7 +31,7 @@ public class WebServer implements Runnable {
     private InetSocketAddress address;
     private ActionListener cacheRefreshedListener;
     private List<Thread> workingThreads = new ArrayList<>();
-
+    private ExecutorService executorService;
     private List<LogEventListener> logEventListeners = new ArrayList<>();
 
     private Selector initSelector(InetSocketAddress address) throws IOException {
@@ -79,6 +81,8 @@ public class WebServer implements Runnable {
             workingThreads.add(new Thread(new ResponseWorker(workingQueue, serverFilesService)));
             workingThreads.forEach(Thread::start);
 
+            executorService = Executors.newFixedThreadPool(4);
+
             new Thread(() ->
             {
                 while (isRunning) {
@@ -97,7 +101,8 @@ public class WebServer implements Runnable {
                             } else if (key.isReadable()) {
                                 this.read(key);
                             } else if (key.isWritable()) {
-                                this.write(key);
+                                executorService.execute(() -> this.write(key));
+                                key.interestOps(SelectionKey.OP_READ);
                             }
                         }
                     } catch (IOException ex) {
@@ -158,7 +163,7 @@ public class WebServer implements Runnable {
         this.workingQueue.offer(key);
     }
 
-    private void write(SelectionKey key) throws IOException {
+    private void write(SelectionKey key) {
         SocketChannel socketChannel = (SocketChannel) key.channel();
         HTTPResponse response = (HTTPResponse) key.attachment();
         try {
@@ -182,6 +187,10 @@ public class WebServer implements Runnable {
     private void writeLine(SocketChannel channel, String line) throws IOException {
         channel.write(encoder.encode(CharBuffer.wrap(line + "\r\n")));
         logAdded(line);
+    }
+
+    public boolean isRunning() {
+        return isRunning;
     }
 
     public final void updateCache() {
@@ -215,6 +224,7 @@ public class WebServer implements Runnable {
             selector.wakeup();
             selector.close();
             serverChannel.close();
+            executorService.shutdown();
         } catch (IOException ex) {
 
         }
@@ -222,6 +232,10 @@ public class WebServer implements Runnable {
 
     public void addLogListener(LogEventListener listener) {
         logEventListeners.add(listener);
+    }
+
+    public void removeLogListeners() {
+        logEventListeners.clear();
     }
 
     public void addCacheRefreshedListener(ActionListener listener) {
