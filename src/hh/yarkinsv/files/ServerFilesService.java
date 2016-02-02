@@ -10,11 +10,14 @@ import java.util.*;
 public class ServerFilesService {
     private String root;
     private boolean useCaching;
-    private Map<String, FileInfo> cache = Collections.synchronizedMap(new HashMap<>());
+    private Map<String, FileInfo> cache = new HashMap<>();
     private ActionListener cacheRefreshedListener;
 
     public ServerFilesService(String root, boolean useCaching) throws IOException {
         this.root = root;
+        if (("" + root.charAt(root.length() - 1)).equals(FileSystems.getDefault().getSeparator())) {
+            this.root = root.substring(0, root.length() - 1);
+        }
         this.useCaching = useCaching;
         if (this.useCaching) {
             refreshCache();
@@ -25,6 +28,7 @@ public class ServerFilesService {
         if (FileSystems.getDefault().getSeparator().equals("\\")) {
             fileName = fileName.replaceAll("/", "\\\\");
         }
+
         String absoluteFileName = root;
         if (("" + fileName.charAt(0)).equals(FileSystems.getDefault().getSeparator())) {
             absoluteFileName += fileName;
@@ -47,7 +51,7 @@ public class ServerFilesService {
                     if (cache.containsKey(file.getAbsolutePath())) {
                         cache.remove(file.getAbsolutePath());
                     }
-                    cache.put(file.getAbsolutePath(), readFileInfo(file.getAbsolutePath()));
+                    cache.put(file.getAbsolutePath().replaceAll(":\\\\\\\\", ":\\\\"), readFileInfo(file.getAbsolutePath()));
                 }
                 if (cacheRefreshedListener != null) {
                     cacheRefreshedListener.actionPerformed(new ActionEvent(this, 1, "Cache refreshed"));

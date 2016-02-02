@@ -31,8 +31,8 @@ public class WebServer implements Runnable {
     private InetSocketAddress address;
     private ActionListener cacheRefreshedListener;
     private List<Thread> workingThreads = new ArrayList<>();
-    private ExecutorService executorService;
     private List<LogEventListener> logEventListeners = new ArrayList<>();
+    private Thread webServerMainThread;
 
     private Selector initSelector(InetSocketAddress address) throws IOException {
         Selector socketSelector = SelectorProvider.provider().openSelector();
@@ -79,11 +79,11 @@ public class WebServer implements Runnable {
             workingThreads = new ArrayList<>();
             workingThreads.add(new Thread(new ResponseWorker(workingQueue, serverFilesService)));
             workingThreads.add(new Thread(new ResponseWorker(workingQueue, serverFilesService)));
+            workingThreads.add(new Thread(new ResponseWorker(workingQueue, serverFilesService)));
+            workingThreads.add(new Thread(new ResponseWorker(workingQueue, serverFilesService)));
             workingThreads.forEach(Thread::start);
 
-            executorService = Executors.newFixedThreadPool(4);
-
-            new Thread(() ->
+            webServerMainThread = new Thread(() ->
             {
                 while (isRunning) {
                     try {
@@ -101,7 +101,7 @@ public class WebServer implements Runnable {
                             } else if (key.isReadable()) {
                                 this.read(key);
                             } else if (key.isWritable()) {
-                                executorService.execute(() -> this.write(key));
+                                this.write(key);
                                 key.interestOps(SelectionKey.OP_READ);
                             }
                         }
@@ -115,7 +115,8 @@ public class WebServer implements Runnable {
                         throw new RuntimeException(ex);
                     }
                 }
-            }).start();
+            });
+            webServerMainThread.start();
         } catch (IOException ex) {
             isRunning = false;
             throw new RuntimeException(ex);
@@ -218,13 +219,11 @@ public class WebServer implements Runnable {
         if (!isRunning) return;
         isRunning = false;
         try {
-            for (Thread workingThread : workingThreads) {
-                workingThread.interrupt();
-            }
-            selector.wakeup();
+            workingThreads.forEach(Thread::interrupt);
             selector.close();
+            selector.wakeup();
+            webServerMainThread.interrupt();
             serverChannel.close();
-            executorService.shutdown();
         } catch (IOException ex) {
 
         }

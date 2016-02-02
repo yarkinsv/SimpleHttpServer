@@ -124,8 +124,8 @@
                   <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
-                  <foreground color="-14694813"/>
-                  <text value="Логирование включено"/>
+                  <foreground color="-3794932"/>
+                  <text value="Логирование отключено"/>
                 </properties>
               </component>
             </children>

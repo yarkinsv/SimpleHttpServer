@@ -19,7 +19,7 @@ public class HTTPRequest {
 
             StringTokenizer tokenizer = new StringTokenizer(lines[0]);
             this.method = tokenizer.nextToken().toUpperCase();
-            this.location = tokenizer.nextToken();
+            this.location = java.net.URLDecoder.decode(tokenizer.nextToken(), "UTF-8");
             this.version = tokenizer.nextToken();
 
             for (int i = 1; i < lines.length; i++) {

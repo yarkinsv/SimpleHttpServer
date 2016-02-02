@@ -110,12 +110,6 @@ public class WebServerGUI extends JFrame {
             }
         });
 
-        webServer.addLogListener(log -> {
-            loggingTextArea.setText(loggingTextArea.getText() + System.lineSeparator() + log);
-            JScrollBar vertical = scrollPane.getVerticalScrollBar();
-            vertical.setValue(vertical.getMaximum() + 100);
-        });
-
         this.addWindowListener(new WindowListener() {
 
             @Override
@@ -150,7 +144,7 @@ public class WebServerGUI extends JFrame {
 
         this.add(this.JPanel);
         this.pack();
-        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setVisible(true);
         this.setLocationRelativeTo(null);
         this.setTitle("Java NIO Server");
@@ -191,6 +185,18 @@ public class WebServerGUI extends JFrame {
         webServer.stop();
         webServer = new WebServer();
         configureWebServer();
+        if (textLoggin.getText().equals("Логирование включено")) {
+            webServer.addLogListener(new LogEventListener() {
+                @Override
+                public void logEventAdded(String log) {
+                    sb.append(System.lineSeparator());
+                    sb.append(log);
+                    loggingTextArea.setText(sb.toString());
+                    JScrollBar vertical = scrollPane.getVerticalScrollBar();
+                    vertical.setValue(vertical.getMaximum() + 100);
+                }
+            });
+        }
         webServer.run();
     }
 
@@ -252,8 +258,8 @@ public class WebServerGUI extends JFrame {
         final Spacer spacer1 = new Spacer();
         panel3.add(spacer1, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
         textLoggin = new JLabel();
-        textLoggin.setForeground(new Color(-14694813));
-        textLoggin.setText("Логирование включено");
+        textLoggin.setForeground(new Color(-3794932));
+        textLoggin.setText("Логирование отключено");
         panel3.add(textLoggin, new GridConstraints(0, 3, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final javax.swing.JPanel panel4 = new JPanel();
         panel4.setLayout(new GridLayoutManager(2, 1, new Insets(5, 5, 5, 5), -1, -1));
